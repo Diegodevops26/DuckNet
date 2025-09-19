@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuckNet - Monitor de Conexão</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            color: white;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+        }
+
+        .status-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            border-left: 5px solid #27ae60;
+        }
+
+        .status-online {
+            border-left-color: #27ae60;
+        }
+
+        .status-offline {
+            border-left-color: #e74c3c;
+        }
+
+        .status-oscillating {
+            border-left-color: #f39c12;
+        }
+
+        .status-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .status-description {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 25px 0;
+        }
+
+        button {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .stats {
+            background: #ecf0f1;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 25px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #bdc3c7;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .duck-container {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            overflow: hidden;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .duck {
+            position: absolute;
+            bottom: 0;
+            left: -100px;
+            width: 80px;
+            height: 80px;
+            transition: left 0.1s linear;
+        }
+
+        .duck-body {
+            width: 60px;
+            height: 40px;
+            background: #ffd700;
+            border-radius: 50% 60% 40% 50%;
+            position: relative;
+        }
+
+        .duck-head {
+            width: 35px;
+            height: 35px;
+            background: #ffd700;
+            border-radius: 50%;
+            position: absolute;
+            top: -15px;
+            left: -10px;
+        }
+
+        .duck-eye {
+            width: 8px;
+            height: 8px;
+            background: #000;
+            border-radius: 50%;
+            position: absolute;
+            top: 8px;
+            right: 8px;
+        }
+
+        .duck-beak {
+            width: 15px;
+            height: 8px;
+            background: #ff6b00;
+            border-radius: 50%;
+            position: absolute;
+            top: 15px;
+            right: -5px;
+        }
+
+        .duck-wing {
+            width: 30px;
+            height: 20px;
+            background: #ffed85;
+            border-radius: 50%;
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            transform-origin: center;
+            animation: wingFlap 0.5s ease-in-out infinite;
+        }
+
+        .walking .duck-wing {
+            animation: wingFlap 0.3s ease-in-out infinite;
+        }
+
+        @keyframes wingFlap {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+
+        .duck-feet {
+            position: absolute;
+            bottom: -5px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .duck-foot {
+            width: 12px;
+            height: 8px;
+            background: #ff6b00;
+            border-radius: 50%;
+        }
+
+        .settings-panel {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+            border: 2px solid #ecf0f1;
+        }
+
+        .settings-title {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .setting-item {
+            margin: 15px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .value-display {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 2000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .notification.warning {
+            border-left: 4px solid #f39c12;
+        }
+
+        .notification.success {
+            border-left: 4px solid #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🦆</div>
+        <h1>DuckNet</h1>
+        <p class="subtitle">Seu pato pessoal para monitorar a conexão de internet</p>
+        
+        <div class="status-container status-online" id="statusContainer">
+            <div class="status-text" id="statusText">Conexão Estável</div>
+            <div class="status-description" id="statusDescription">Sua conexão com a internet está funcionando perfeitamente.</div>
+        </div>
+
+        <div class="controls">
+            <button id="testConnection">Testar Conexão</button>
+            <button id="toggleDuck">Mostrar/Ocultar Pato</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <span>Tempo online:</span>
+                <span id="uptime">00:00:00</span>
+            </div>
+            <div class="stat-item">
+                <span>Oscilações detectadas:</span>
+                <span id="oscillationCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span>Status atual:</span>
+                <span id="currentStatus">Online</span>
+            </div>
+        </div>
+
+        <div class="settings-panel">
+            <div class="settings-title">Configurações</div>
+            <div class="setting-item">
+                <label for="sensitivity">Sensibilidade da oscilação:</label>
+                <input type="range" id="sensitivity" min="1" max="10" value="5">
+                <div class="value-display" id="sensitivityValue">Média</div>
+            </div>
+            <div class="setting-item">
+                <label for="duckSpeed">Velocidade do pato:</label>
+                <input type="range" id="duckSpeed" min="1" max="10" value="5">
+                <div class="value-display" id="duckSpeedValue">Normal</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="duck-container">
+        <div class="duck" id="duck">
+            <div class="duck-body">
+                <div class="duck-head">
+                    <div class="duck-eye"></div>
+                    <div class="duck-beak"></div>
+                </div>
+                <div class="duck-wing"></div>
+            </div>
+            <div class="duck-feet">
+                <div class="duck-foot"></div>
+                <div class="duck-foot"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Variáveis de estado
+        let isOnline = true;
+        let oscillationCount = 0;
+        let startTime = Date.now();
+        let duckVisible = false;
+        let duckMoving = false;
+        let checkInterval;
+        
+        // Elementos DOM
+        const statusContainer = document.getElementById('statusContainer');
+        const statusText = document.getElementById('statusText');
+        const statusDescription = document.getElementById('statusDescription');
+        const oscillationCountEl = document.getElementById('oscillationCount');
+        const currentStatusEl = document.getElementById('currentStatus');
+        const uptimeEl = document.getElementById('uptime');
+        const duck = document.getElementById('duck');
+        const testBtn = document.getElementById('testConnection');
+        const toggleDuckBtn = document.getElementById('toggleDuck');
+        const notification = document.getElementById('notification');
+        const sensitivitySlider = document.getElementById('sensitivity');
+        const sensitivityValue = document.getElementById('sensitivityValue');
+        const duckSpeedSlider = document.getElementById('duckSpeed');
+        const duckSpeedValue = document.getElementById('duckSpeedValue');
+
+        // Configurações iniciais
+        let sensitivity = 5;
+        let duckSpeed = 5;
+
+        // Inicialização
+        function init() {
+            updateUptime();
+            setInterval(updateUptime, 1000);
+            
+            startConnectionMonitoring();
+            setupEventListeners();
+            loadSettings();
+        }
+
+        // Monitoramento da conexão
+        function startConnectionMonitoring() {
+            checkInterval = setInterval(checkConnection, 3000);
+            checkConnection(); // Verificação inicial
+        }
+
+        function checkConnection() {
+            const previousStatus = isOnline;
+            
+            // Simulação de verificação de conexão
+            // Em um cenário real, você usaria navigator.onLine ou uma requisição real
+            const random = Math.random();
+            const threshold = 0.1 + (sensitivity * 0.05); // Ajusta a sensibilidade
+            
+            isOnline = random > threshold;
+            
+            if (previousStatus !== isOnline) {
+                oscillationCount++;
+                oscillationCountEl.textContent = oscillationCount;
+                handleConnectionChange();
+            }
+            
+            updateStatusDisplay();
+        }
+
+        function handleConnectionChange() {
+            if (!isOnline) {
+                showNotification('Conexão oscilando! O pato está andando...', 'warning');
+                moveDuck();
+            } else {
+                showNotification('Conexão restaurada!', 'success');
+                stopDuck();
+            }
+        }
+
+        function updateStatusDisplay() {
+            if (isOnline) {
+                statusContainer.className = 'status-container status-online';
+                statusText.textContent = 'Conexão Estável';
+                statusDescription.textContent = 'Sua conexão com a internet está funcionando perfeitamente.';
+                currentStatusEl.textContent = 'Online';
+            } else {
+                statusContainer.className = 'status-container status-offline';
+                statusText.textContent = 'Conexão Instável';
+                statusDescription.textContent = 'Sua conexão está apresentando oscilações.';
+                currentStatusEl.textContent = 'Oscilando';
+            }
+        }
+
+        // Controle do pato
+        function moveDuck() {
+            if (!duckVisible) return;
+            
+            duckMoving = true;
+            duck.classList.add('walking');
+            
+            const screenWidth = window.innerWidth;
+            const speed = 10000 / duckSpeed; // Quanto maior o valor, mais lento
+            
+            duck.style.transition = `left ${speed}ms linear`;
+            duck.style.left = `${screenWidth + 100}px`;
+            
+            setTimeout(() => {
+                if (duckMoving) {
+                    duck.style.left = '-100px';
+                    setTimeout(() => moveDuck(), 100);
+                }
+            }, speed);
+        }
+
+        function stopDuck() {
+            duckMoving = false;
+            duck.classList.remove('walking');
+            duck.style.left = '-100px';
+        }
+
+        function toggleDuck() {
+            duckVisible = !duckVisible;
+            
+            if (duckVisible) {
+                duck.style.display = 'block';
+                if (!isOnline) {
+                    moveDuck();
+                }
+            } else {
+                duck.style.display = 'none';
+                stopDuck();
+            }
+        }
+
+        // Utilitários
+        function updateUptime() {
+            const elapsed = Date.now() - startTime;
+            const hours = Math.floor(elapsed / 3600000);
+            const minutes = Math.floor((elapsed % 3600000) / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            
+            uptimeEl.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function showNotification(message, type) {
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function setupEventListeners() {
+            testBtn.addEventListener('click', () => {
+                checkConnection();
+                showNotification('Teste de conexão realizado!', 'success');
+            });
+            
+            toggleDuckBtn.addEventListener('click', toggleDuck);
+            
+            sensitivitySlider.addEventListener('input', () => {
+                sensitivity = parseInt(sensitivitySlider.value);
+                const labels = ['Muito Baixa', 'Baixa', 'Média', 'Alta', 'Muito Alta'];
+                sensitivityValue.textContent = labels[Math.floor(sensitivity / 2)];
+                saveSettings();
+            });
+            
+            duckSpeedSlider.addEventListener('input', () => {
+                duckSpeed = parseInt(duckSpeedSlider.value);
+                const labels = ['Muito Lenta', 'Lenta', 'Normal', 'Rápida', 'Muito Rápida'];
+                duckSpeedValue.textContent = labels[Math.floor(duckSpeed / 2)];
+                saveSettings();
+                
+                if (duckMoving) {
+                    stopDuck();
+                    moveDuck();
+                }
+            });
+        }
+
+        function saveSettings() {
+            const settings = {
+                sensitivity: sensitivity,
+                duckSpeed: duckSpeed
+            };
+            localStorage.setItem('duckNetSettings', JSON.stringify(settings));
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('duckNetSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                sensitivity = settings.sensitivity;
+                duckSpeed = settings.duckSpeed;
+                
+                sensitivitySlider.value = sensitivity;
+                duckSpeedSlider.value = duckSpeed;
+                
+                // Atualiza os valores exibidos
+                sensitivitySlider.dispatchEvent(new Event('input'));
+                duckSpeedSlider.dispatchEvent(new Event('input'));
+            }
+        }
+
+        // Inicia a aplicação
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

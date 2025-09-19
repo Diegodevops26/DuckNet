@@ -1,0 +1,17 @@
+{
+  "manifest_version": 2,
+  "name": "DuckNet - Monitor de Conexão",
+  "version": "1.0",
+  "description": "Um pato simpático que avisa quando sua conexão oscila.",
+  "icons": {
+    "48": "icon.jpg"
+  },
+  "browser_action": {
+    "default_popup": "index.html",
+    "default_title": "DuckNet"
+  },
+  "permissions": [
+    "storage",
+    "notifications"
+  ]
+}
